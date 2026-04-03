@@ -1,5 +1,6 @@
 from flask import Flask, request
 import requests
+import asyncio
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -148,13 +149,17 @@ def home():
     return "Bot is running!"
 
 @app.route("/webhook", methods=["POST"])
-async def webhook():
+def webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    await telegram_app.process_update(update)
+    asyncio.run(telegram_app.process_update(update))
     return "ok"
+
+# ================= INIT =================
+async def init_app():
+    await telegram_app.initialize()
+    await telegram_app.start()
 
 # ================= RUN =================
 if __name__ == "__main__":
-    telegram_app.initialize()
-    telegram_app.start()
+    asyncio.run(init_app())
     app.run(host="0.0.0.0", port=10000)
