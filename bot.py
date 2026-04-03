@@ -38,44 +38,52 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     data = users[chat_id]
 
+    # MAIN BUTTON
     if text == "🚀 রেজাল্ট বের করুন 🚀":
         users[chat_id] = {}
         keyboard = [["JSC/JDC","SSC/Dakhil"],["HSC/Alim","DIBS"]]
         await update.message.reply_text("📘 Exam নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
         return
 
+    # EXAM
     if "exam" not in data:
         data["exam"] = text.split("/")[0].lower()
         keyboard = [["2025","2024","2023"],["2022","2021","2020"],["2019","2018","2017"]]
         await update.message.reply_text("📅 Year নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
         return
 
+    # YEAR
     if "year" not in data:
         data["year"] = text
         keyboard = [["Dhaka","Rajshahi","Cumilla"],["Chattogram","Sylhet","Barishal"],["Dinajpur","Jashore","Mymensingh"],["Madrasha","Technical"]]
         await update.message.reply_text("🏫 Board নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
         return
 
+    # BOARD
     if "board" not in data:
         data["board"] = text.lower()
         await update.message.reply_text("🆔 Roll লিখুন:")
         return
 
+    # ROLL
     if "roll" not in data:
         data["roll"] = text
         await update.message.reply_text("📄 Registration লিখুন:")
         return
 
+    # REG
     if "reg" not in data:
         data["reg"] = text
         data["session"] = requests.Session()
         await send_captcha(update, data)
         return
 
+    # CAPTCHA RELOAD
     if text == "🔄 Reload Captcha":
         await send_captcha(update, data)
         return
 
+    # CAPTCHA SUBMIT
     if "captcha" not in data:
         data["captcha"] = text
 
@@ -96,7 +104,12 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "User-Agent": "Mozilla/5.0"
         }
 
-        res = data["session"].post("https://eboardresults.com/v2/getres", data=payload, headers=headers)
+        res = data["session"].post(
+            "https://eboardresults.com/v2/getres",
+            data=payload,
+            headers=headers
+        )
+
         result = res.json()
 
         if result.get("status") != 0:
@@ -108,7 +121,12 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         gpa = info.get("res_detail","N/A").replace("GPA=","")
 
         sex = str(info.get("sex")).strip().lower()
-        gender = "FEMALE" if sex in ["1","f","female"] else "MALE"
+        if sex in ["1","f","female"]:
+            gender = "FEMALE"
+        elif sex in ["2","0","m","male"]:
+            gender = "MALE"
+        else:
+            gender = "UNKNOWN"
 
         msg = f"""👨‍🎓 STUDENT INFORMATION
 ━━━━━━━━━━━━━━━
@@ -141,12 +159,16 @@ async def send_captcha(update, data):
     r = data["session"].get("https://eboardresults.com/v2/captcha")
 
     filename = f"{chat_id}.jpg"
-    with open(filename,"wb") as f:
+    with open(filename, "wb") as f:
         f.write(r.content)
 
     keyboard = [["🔄 Reload Captcha"]]
 
-    await update.message.reply_photo(photo=open(filename,"rb"), reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+    await update.message.reply_photo(
+        photo=open(filename, "rb"),
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    )
+
     await update.message.reply_text("🔐 Captcha লিখুন:")
 
 # ================= WEBHOOK =================
@@ -160,6 +182,10 @@ def webhook():
 def home():
     return "Bot is running!"
 
-# ================= INIT =================
+# ================= HANDLERS =================
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+
+# ================= RUN (LOCAL TEST) =================
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
