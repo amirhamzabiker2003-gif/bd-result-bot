@@ -5,7 +5,7 @@ import asyncio
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8542307257:AAF2Ni_0sVZ06jPqybogZpbFP_QOfMfMVis"
+TOKEN = "8773704187:AAGTsdTedZNUuBYaKsrNUHE1DLt7sjakHJg"
 
 app = Flask(__name__)
 application = ApplicationBuilder().token(TOKEN).build()
