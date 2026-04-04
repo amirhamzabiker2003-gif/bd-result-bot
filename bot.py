@@ -22,7 +22,7 @@ def keep_alive():
     t.start()
 
 # --- ORIGINAL BOT CODE ---
-TOKEN = "YOUR_BOT_TOKEN" # আপনার টোকেনটি এখানে দিন
+TOKEN = "8514395514:AAFTcY5z_-xXgVmUGFGiAw2kKiZ06cKB3T8" # আপনার টোকেনটি এখানে দিন
 
 users = {}
 
