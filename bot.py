@@ -5,15 +5,14 @@ from flask import Flask
 from threading import Thread
 import os
 
-# --- FLASK SERVER FOR RENDER ---
+# --- FLASK SERVER FOR RENDER (KEEP ALIVE) ---
 app_flask = Flask('')
 
 @app_flask.route('/')
 def home():
-    return "Second Bot is Alive!"
+    return "Result Bot with Marksheet is Online!"
 
 def run():
-    # Render এর PORT এনভায়রনমেন্ট ভেরিয়েবল ব্যবহার করা
     port = int(os.environ.get("PORT", 8080))
     app_flask.run(host='0.0.0.0', port=port)
 
@@ -21,8 +20,8 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# --- ORIGINAL BOT CODE ---
-TOKEN = "8514395514:AAFTcY5z_-xXgVmUGFGiAw2kKiZ06cKB3T8" # আপনার টোকেনটি এখানে দিন
+# --- BOT CONFIGURATION ---
+TOKEN = "8514395514:AAFTcY5z_-xXgVmUGFGiAw2kKiZ06cKB3T8" # আপনার বটের টোকেন এখানে দিন
 
 users = {}
 
@@ -38,7 +37,7 @@ def main_menu():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users[update.effective_chat.id] = {}
     await update.message.reply_text(
-        "🎉 Welcome!\n\nResult দেখতে নিচের বাটনে চাপ দিন 👇",
+        "🎉 Welcome!\n\nবিস্তারিত মার্কশিট সহ রেজাল্ট দেখতে নিচের বাটনে চাপ দিন 👇",
         reply_markup=main_menu()
     )
 
@@ -56,14 +55,13 @@ async def send_captcha(update, data):
         keyboard = [["🔄 Reload Captcha"]]
         await update.message.reply_photo(
             photo=open(file_path, "rb"),
-            caption="🔐 উপরে ছবিতে দেখা কোডটি (Captcha) লিখুন:",
+            caption="🔐 উপরে ছবিতে দেখা কোডটি (Captcha) দেখে নিচে লিখুন:",
             reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         )
-        # ফাইলটি পাঠানোর পর ডিলিট করে দেওয়া ভালো (অপশনাল)
     except Exception as e:
         await update.message.reply_text("❌ ক্যাপচা লোড করতে সমস্যা হচ্ছে। আবার চেষ্টা করুন।")
 
-# ================= HANDLE =================
+# ================= HANDLE ALL MESSAGES =================
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     text = update.message.text
@@ -76,32 +74,32 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text == "🚀 রেজাল্ট বের করুন 🚀":
         users[chat_id] = {}
         keyboard = [["JSC/JDC", "SSC/Dakhil"], ["HSC/Alim", "DIBS"]]
-        await update.message.reply_text("📘 Exam নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+        await update.message.reply_text("📘 পরীক্ষার নাম (Exam) নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
         return
 
     if "exam" not in data:
         data["exam"] = text.split("/")[0].lower()
         keyboard = [["2025","2024","2023"], ["2022","2021","2020"], ["2019","2018","2017"], ["➡️ Next Page"]]
-        await update.message.reply_text("📅 Year নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+        await update.message.reply_text("📅 সাল (Year) নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
         return
 
     if "year" not in data:
         if "Next" in text:
-            await update.message.reply_text("👉 Older year selection is coming soon!")
+            await update.message.reply_text("👉 পুরনো সালগুলো শীঘ্রই যুক্ত করা হবে!")
             return
         data["year"] = text
         keyboard = [["Dhaka","Rajshahi","Cumilla"], ["Chattogram","Sylhet","Barishal"], ["Dinajpur","Jashore","Mymensingh"], ["Madrasha","Technical"]]
-        await update.message.reply_text("🏫 Board নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+        await update.message.reply_text("🏫 বোর্ড (Board) নির্বাচন করুন:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
         return
 
     if "board" not in data:
         data["board"] = text.lower()
-        await update.message.reply_text("🆔 Roll লিখুন:")
+        await update.message.reply_text("🆔 আপনার রোল (Roll) নম্বরটি লিখুন:")
         return
 
     if "roll" not in data:
         data["roll"] = text
-        await update.message.reply_text("📄 Registration লিখুন:")
+        await update.message.reply_text("📄 আপনার রেজিস্ট্রেশন (Registration) নম্বর লিখুন:")
         return
 
     if "reg" not in data:
@@ -116,6 +114,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await send_captcha(update, data)
         return
 
+    # এখানে ক্যাপচা ইনপুট নিয়ে রেজাল্ট বের করা হবে
     if "captcha" not in data:
         data["captcha"] = text
         payload = {
@@ -140,49 +139,58 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = res.json()
 
             if result.get("status") != 0:
-                await update.message.reply_text("❌ Captcha ভুল অথবা সার্ভার এরর! আবার চেষ্টা করো।")
-                del data["captcha"] # ভুল ক্যাপচা হলে ডাটা থেকে মুছে ফেলা যাতে আবার ইনপুট নেওয়া যায়
+                await update.message.reply_text("❌ ভুল ক্যাপচা! আবার চেষ্টা করুন।")
+                del data["captcha"]
                 await send_captcha(update, data)
                 return
 
             info = result["res"]
-            gpa = info.get("res_detail","N/A").replace("GPA=","")
             
-            # Gender Fix
+            # রেজাল্ট ডাটা থেকে গ্রেড লিস্ট বের করা
+            subjects_list = info.get("res_data", [])
+            marksheet_text = ""
+            
+            if subjects_list:
+                marksheet_text = "\n📊 SUBJECT WISE GRADE\n━━━━━━━━━━━━━━━\n"
+                for sub in subjects_list:
+                    sub_name = sub.get("subject_name", "Unknown")
+                    grade = sub.get("grade", "N/A")
+                    marksheet_text += f"🔹 {sub_name}: {grade}\n"
+            else:
+                marksheet_text = "\n⚠️ Marksheet details are not available for this exam."
+
+            gpa = info.get("res_detail","N/A").replace("GPA=","")
             sex = str(info.get("sex")).strip().lower()
             gender = "FEMALE" if sex in ["1", "f", "female"] else "MALE" if sex in ["2", "0", "m", "male"] else "UNKNOWN"
 
-            msg = f"""
+            final_msg = f"""
 👨‍🎓 STUDENT INFORMATION
 ━━━━━━━━━━━━━━━
 👤 Name: {info.get('name')}
 👨 Father: {info.get('fname')}
 👩 Mother: {info.get('mname')}
-📅 DOB: {info.get('dob')}
 🚻 Gender: {gender}
 
 📘 {data['exam'].upper()} RESULT {data['year']}
 ━━━━━━━━━━━━━━━
-🆔 Roll: {data['roll']}
-📄 Reg: {data['reg']}
+🆔 Roll: {data['roll']} | 📄 Reg: {data['reg']}
 🏫 Board: {info.get('board_name')}
-📊 Result: PASSED
-⭐ GPA: {gpa}
-🏫 Institute: {info.get('inst_name')}
+📊 Result: PASSED | ⭐ GPA: {gpa}
+🏫 Inst: {info.get('inst_name')}
+
+{marksheet_text}
 """
-            await update.message.reply_text(msg, reply_markup=main_menu())
-            users[chat_id] = {}
+            await update.message.reply_text(final_msg, reply_markup=main_menu())
+            users[chat_id] = {} # ডাটা রিসেট
+            
         except Exception as e:
-            await update.message.reply_text("❌ রেজাল্ট আনতে সমস্যা হয়েছে। আবার শুরু করুন।")
+            await update.message.reply_text("❌ সার্ভারে সমস্যা হয়েছে। দয়া করে আবার শুরু করুন।")
             users[chat_id] = {}
 
 # ================= RUN =================
 if __name__ == "__main__":
-    # ১. প্রথমে ফ্লাস্ক চালু হবে
-    keep_alive()
-    
-    # ২. এরপর টেলিগ্রাম বট চালু হবে
-    print("🚀 SECOND BOT STARTED SUCCESSFULLY ✅")
+    keep_alive() # রেন্ডারের জন্য ফ্লাস্ক সার্ভার চালু
+    print("🚀 Result Bot with Marksheet is Running...")
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
